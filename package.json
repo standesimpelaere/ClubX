@@ -9,7 +9,7 @@
     "build": "turbo run build",
     "build:web": "turbo run build --filter=web",
     "start:web": "turbo run start --filter=web",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --parallel",
     "dev:pwa": "NODE_ENV=production turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
