@@ -1,0 +1,39 @@
+{
+  "name": "sports-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=web",
+    "start:web": "turbo run start --filter=web",
+    "dev": "turbo run dev",
+    "dev:pwa": "NODE_ENV=production turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "db:generate": "turbo run db:generate",
+    "db:push": "turbo run db:push",
+    "db:seed": "turbo run db:seed",
+    "db:migrate": "prisma migrate dev --schema packages/db/schema.prisma",
+    "db:seed:ts": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' packages/db/seed.ts",
+    "pwa:lighthouse": "echo 'Open Chrome DevTools → Lighthouse → PWA audit'"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^1.10.12",
+    "turbo": "^1.10.12",
+    "typescript": "^5.2.2"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "@prisma/extension-accelerate": "^2.0.2",
+    "next-pwa": "^5.6.0",
+    "prisma": "^5.6.0",
+    "ts-node": "^10.9.2",
+    "workbox-window": "^7.3.0"
+  }
+}

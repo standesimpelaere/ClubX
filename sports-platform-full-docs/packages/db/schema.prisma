@@ -1,0 +1,212 @@
+// generator & datasource
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  COACH
+  PARENT
+  MEMBER
+}
+
+enum RSVPStatus {
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+}
+
+enum BookingStatus {
+  HOLD
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  name           String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  memberships    MemberProfile[]
+  createdEvents  Event[]          @relation("UserCreatedEvents")
+  createdBookings Booking[]       @relation("UserCreatedBookings")
+  parentOf       MemberProfile[]  @relation("ParentChildren")
+
+  @@index([email])
+}
+
+model Org {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  city        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  members     MemberProfile[]
+  teams       Team[]
+  facilities  Facility[]
+  events      Event []
+  bookings    Booking[]
+
+  @@index([slug])
+}
+
+model MemberProfile {
+  id            String   @id @default(cuid())
+  orgId         String
+  userId        String
+  role          Role     @default(MEMBER)
+  displayName   String?
+  dateOfBirth   DateTime?
+  medicalNotes  String?
+  teamId        String?           // optioneel primair team
+  parentUserId  String?           // als dit een kind-profiel is
+
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentUser    User?    @relation("ParentChildren", fields: [parentUserId], references: [id])
+  team          Team?    @relation(fields: [teamId], references: [id])
+
+  rsvps         RSVP[]
+  attendances   Attendance[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([orgId, userId]) // 1 membership per org
+  @@index([orgId, role])
+  @@index([teamId])
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members   MemberProfile[]
+  events    Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+model Facility {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  type      String?
+  location  String?
+  capacity  Int?
+
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  orgId       String
+  teamId      String?
+  title       String
+  description String?
+  location    String?
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int?
+
+  createdById String
+  createdBy   User     @relation("UserCreatedEvents", fields: [createdById], references: [id])
+
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id])
+  rsvps       RSVP[]
+  attendance  Attendance[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orgId, startsAt])
+  @@index([teamId])
+}
+
+model RSVP {
+  id               String      @id @default(cuid())
+  orgId            String
+  eventId          String
+  memberProfileId  String
+  status           RSVPStatus
+  note             String?
+
+  org              Org         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  event            Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member           MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([eventId, memberProfileId])
+  @@index([orgId])
+}
+
+model Attendance {
+  id               String            @id @default(cuid())
+  orgId            String
+  eventId          String
+  memberProfileId  String
+  status           AttendanceStatus
+
+  org              Org               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  event            Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member           MemberProfile     @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([eventId, memberProfileId])
+  @@index([orgId])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  orgId       String
+  facilityId  String
+  startsAt    DateTime
+  endsAt      DateTime
+  status      BookingStatus @default(HOLD)
+
+  createdById String
+  createdBy   User          @relation("UserCreatedBookings", fields: [createdById], references: [id])
+
+  org         Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  facility    Facility      @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([orgId, facilityId, startsAt, endsAt])
+}
